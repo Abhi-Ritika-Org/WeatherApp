@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: #121212;
+            color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode .container {
+            background: #1e1e1e;
+            color: #f5f5f5;
+        }
+
+        h1 { margin-bottom: 20px; }
+
+        .location-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .location-btn {
+            padding: 10px 20px;
+            border: 2px solid #007BFF;
+            background: transparent;
+            color: #007BFF;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .location-btn.active,
+        .location-btn:hover {
+            background: #007BFF;
+            color: white;
+        }
+
+        body.dark-mode .location-btn {
+            border-color: #4dabf7;
+            color: #4dabf7;
+        }
+
+        body.dark-mode .location-btn.active,
+        body.dark-mode .location-btn:hover {
+            background: #4dabf7;
+            color: #121212;
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+        }
+
+        .search-box { margin-bottom: 20px; }
+
+        .search-box input {
+            padding: 10px;
+            width: 60%;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .search-box button {
+            padding: 10px 15px;
+            border: none;
+            background: #007BFF;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            color: #d63384;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #d63384;
+        }
+
+        body.dark-mode .error-message {
+            background: #4d1f2a;
+            color: #f8b2cc;
+            border-left-color: #f8b2cc;
+        }
+
+        .current-location {
+            margin: 20px 0 10px 0;
+        }
+
+        .current-location h2 {
+            margin: 0;
+            color: #007BFF;
+            font-size: 1.4em;
+        }
+
+        body.dark-mode .current-location h2 {
+            color: #4dabf7;
+        }
+
+        .switch-search-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .switch-search-btn:hover {
+            background: #218838;
+        }
+
+        .weather-info {
+            background: #eef6fb;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode .weather-info {
+            background: #2c2c2c;
+            color: #f5f5f5;
+        }
+
+        .forecast {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            margin-top: 20px;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            flex: 0 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 140px;
+            box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode .card {
+            background: #2c2c2c;
+            color: #f5f5f5;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            transition: color 0.3s;
+        }
+
+        body.light-mode .theme-toggle { color: #000; }
+        body.dark-mode .theme-toggle { color: #fff; }
+    </style>
+</head>
+<body class="light-mode">
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+    <div class="container">
+        <h1>Weather App</h1>
+        
+        <!-- Location Type Selector -->
+        <div class="location-selector">
+            <button id="locationBtn" class="location-btn" onclick="useLocation()">📍 Use My Location</button>
+            <button id="manualBtn" class="location-btn active" onclick="useManualSearch()">🔍 Search City</button>
+        </div>
+
+        <!-- Manual Search Form -->
+        <div id="manualSearch" class="search-section">
+            <div class="search-box">
+                <form method="get" action="/">
+                    <input type="text" name="city" placeholder="Enter city name" value="{{ request.args.get('city', '') }}" required>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Location Search -->
+        <div id="locationSearch" class="search-section" style="display: none;">
+            <p>Click the button above to get weather for your current location.</p>
+        </div>
+
+        <!-- Error Message -->
+        {% if error_message %}
+        <div class="error-message">
+            <p>{{ error_message }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Weather Display -->
+        {% if weather %}
+        <div class="current-location">
+            <h2>
+                {% if search_type == 'location' %}
+                📍 Current Location: {{ weather.city }}, {{ weather.country }}
+                {% else %}
+                🔍 Weather in {{ weather.city }}, {{ weather.country }}
+                {% endif %}
+            </h2>
+            {% if search_type == 'location' %}
+            <button class="switch-search-btn" onclick="window.location.href='/'">🔍 Switch to Manual Search</button>
+            {% endif %}
+        </div>
+        
+        <div class="weather-info">
+            <p><strong>Temperature:</strong> {{ weather.temperature }} °C</p>
+            <p><strong>Humidity:</strong> {{ weather.humidity }}%</p>
+            <p><strong>Wind:</strong> {{ weather.wind }} m/s</p>
+            <p><strong>Condition:</strong> {{ weather.condition }}</p>
+        </div>
+        {% endif %}
+
+        {% if forecast %}
+        <h2>Forecast</h2>
+        <div class="forecast">
+            {% for day in forecast %}
+            <div class="card">
+                <p><strong>{{ day.dt | datetime }}</strong></p>
+                <p>{{ day.temp }} °C</p>
+                <p>{{ day.condition }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const toggleBtn = document.querySelector(".theme-toggle");
+            body.classList.toggle("dark-mode");
+            body.classList.toggle("light-mode");
+            toggleBtn.textContent = body.classList.contains("dark-mode") ? "☀️" : "🌙";
+        }
+
+        function useLocation() {
+            document.getElementById('locationBtn').classList.add('active');
+            document.getElementById('manualBtn').classList.remove('active');
+            document.getElementById('manualSearch').style.display = 'none';
+            document.getElementById('locationSearch').style.display = 'block';
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    window.location.href = `/coords?lat=${lat}&lon=${lon}`;
+                }, (error) => {
+                    alert('Unable to get your location. Please search manually.');
+                    useManualSearch();
+                });
+            } else {
+                alert('Geolocation is not supported by this browser. Please search manually.');
+                useManualSearch();
+            }
+        }
+
+        function useManualSearch() {
+            document.getElementById('manualBtn').classList.add('active');
+            document.getElementById('locationBtn').classList.remove('active');
+            document.getElementById('locationSearch').style.display = 'none';
+            document.getElementById('manualSearch').style.display = 'block';
+        }
+
+        // Initialize the correct mode based on current page
+        window.addEventListener("load", () => {
+            if (window.location.pathname.startsWith("/coords")) {
+                // We're on the location-based page
+                document.getElementById('locationBtn').classList.add('active');
+                document.getElementById('manualBtn').classList.remove('active');
+                document.getElementById('manualSearch').style.display = 'none';
+                document.getElementById('locationSearch').style.display = 'block';
+            } else {
+                // We're on the manual search page
+                useManualSearch();
+            }
+        });
+    </script>
+</body>
+</html>
