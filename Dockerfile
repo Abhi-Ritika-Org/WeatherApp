@@ -2,7 +2,7 @@
 FROM python:3.10
 
 # Set the working directory in the container
-WORKDIR /weather_app
+WORKDIR /weather-app-ec2
 
 # Copy the requirements file and install dependencies
 COPY weather_app/requirements.txt ./
