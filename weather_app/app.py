@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-API_KEY = os.getenv("OWM_API_KEY")
+API_KEY = os.getenv("OWM_API_KEY").strip()
 
 
 # Jinja2 filter to format datetime
@@ -31,9 +31,14 @@ def index():
     error_message = None
 
     if city and API_KEY:
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
-        res = requests.get(url).json()
-
+        url = "http://api.openweathermap.org/data/2.5/weather"
+        params = {
+            "q": city,
+            "appid": API_KEY,
+            "units": "metric"
+        }
+        res = requests.get(url, params=params).json()
+        
         if res.get("cod") == 200:
             weather = {
                 "city": res["name"],
@@ -45,8 +50,14 @@ def index():
             }
 
             # Forecast
-            forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?q={city}&appid={API_KEY}&units=metric"
-            res_forecast = requests.get(forecast_url).json()
+            forecast_url = "http://api.openweathermap.org/data/2.5/forecast"
+            params = {
+                "q": city,
+                "appid": API_KEY,
+                "units": "metric"
+            }
+
+            res_forecast = requests.get(forecast_url, params=params).json()
             forecast = [
                 {
                     "dt": item["dt_txt"],
