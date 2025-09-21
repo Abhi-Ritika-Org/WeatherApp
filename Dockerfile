@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 5000
 
 # Define the default command to run the Flask app
-CMD ["python", "app.py"]
+CMD ["python", "weather_app/app.py"]
