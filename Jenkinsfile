@@ -2,35 +2,63 @@ pipeline {
     agent any
 
     environment {
-        REMOTE_USER = 'ubuntu'   // use 'ubuntu' if you're using Ubuntu AMI
-        REMOTE_HOST = '13.236.185.88'
-        SSH_KEY = credentials('../../Downloads/weather-app-key.pem') // set this in Jenkins credentials
-        APP_DIR = '/home/ubuntu/flask_app'
+        BRANCH_NAME   = 'dev'                      // branch to build
+        AWS_ACCOUNT   = '558772714202'             // your AWS account
+        AWS_REGION    = 'ap-southeast-2'              // your AWS region
+        IMAGE_NAME    = 'weatherapp'              // your Docker image name
+        ECS_CLUSTER   = 'first-cluster-ecs'      // ECS cluster name
+        ECS_SERVICE   = 'first-cluster-service'      // ECS service name
     }
 
     stages {
-        stage('Clone Source') {
+        stage('Checkout Source') {
             steps {
-                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git', branch: 'dev'
+                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git', branch: "${BRANCH_NAME}"
             }
         }
-        stage('Install dependencies') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
-        stage('Deploy to EC2') {
+
+        stage('Push to ECR') {
             steps {
-                sshagent (credentials: ['ec2-ssh-key-id']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST 'mkdir -p $APP_DIR'
-                    scp -o StrictHostKeyChecking=no -i $SSH_KEY app.py $REMOTE_USER@$REMOTE_HOST:$APP_DIR/
-                    scp -o StrictHostKeyChecking=no -i $SSH_KEY requirements.txt $REMOTE_USER@$REMOTE_HOST:$APP_DIR/
-                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST 'pip install -r $APP_DIR/requirements.txt'
-                    ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST 'nohup python3 $APP_DIR/app.py &'
-                    """
-                }
+                sh """
+                    # Login to AWS ECR
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+                    # Tag and push image
+                    docker tag ${IMAGE_NAME}:latest ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest
+                    docker push ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest
+
+                    # Optional: remove local image to save space
+                    docker image rm ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest ${IMAGE_NAME}:latest
+                """
             }
+        }
+
+        stage('Deploy to ECS') {
+            steps {
+                sh """
+                    aws ecs update-service \
+                        --cluster ${ECS_CLUSTER} \
+                        --service ${ECS_SERVICE} \
+                        --force-new-deployment \
+                        --region ${AWS_REGION}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful!"
+        }
+        failure {
+            echo "Pipeline failed. Check Jenkins logs."
         }
     }
 }
