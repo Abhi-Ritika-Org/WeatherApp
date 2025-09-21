@@ -2,7 +2,7 @@
 FROM python:3.10
 
 # Set the working directory in the container
-WORKDIR /app
+WORKDIR /weather_app
 
 # Copy the requirements file and install dependencies
 COPY weather_app/requirements.txt ./
