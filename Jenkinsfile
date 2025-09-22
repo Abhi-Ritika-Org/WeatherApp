@@ -2,40 +2,56 @@ pipeline {
     agent any
 
     environment {
-        // BRANCH_NAME   = 'dev'                      // branch to build
-        AWS_ACCOUNT   = '558772714202'             // your AWS account
+        AWS_ACCOUNT   = '558772714202'                // your AWS account
         AWS_REGION    = 'ap-southeast-2'              // your AWS region
-        IMAGE_NAME    = 'weatherapp'              // your Docker image name
-        ECS_CLUSTER   = 'first-cluster-ecs'      // ECS cluster name
-        ECS_SERVICE   = 'first-cluster-service'      // ECS service name
+        IMAGE_NAME    = 'weatherapp'                  // your Docker image name
+        ECS_CLUSTER   = 'first-cluster-ecs'           // ECS cluster name
+        ECS_SERVICE   = 'first-cluster-service'       // ECS service name
     }
 
     stages {
         stage('Checkout Source') {
             steps {
-                git url: 'git@github.com:Abhi-Ritika-Org/WeatherApp.git'
+                git url: 'git@github.com:Abhi-Ritika-Org/WeatherApp.git',
+                    credentialsId: 'GITHUB-WEATHER-APP'
+                // Jenkins will checkout the branch you specify in job config (Branch Specifier, e.g. */dev)
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:latest ."
+                script {
+                    // sanitize branch name for Docker tag (replace / with -)
+                    BRANCH_TAG = env.BRANCH_NAME.replaceAll('/', '-')
+                }
+                sh """
+                    docker build -t ${IMAGE_NAME}:latest -t ${IMAGE_NAME}:${BRANCH_TAG} .
+                """
             }
         }
 
         stage('Push to ECR') {
             steps {
+                script {
+                    BRANCH_TAG = env.BRANCH_NAME.replaceAll('/', '-')
+                }
                 sh """
                     # Login to AWS ECR
                     aws ecr get-login-password --region ${AWS_REGION} | \
                         docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-                    # Tag and push image
+                    # Tag images with full ECR path
                     docker tag ${IMAGE_NAME}:latest ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest
-                    docker push ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest
+                    docker tag ${IMAGE_NAME}:${BRANCH_TAG} ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${BRANCH_TAG}
 
-                    # Optional: remove local image to save space
-                    docker image rm ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest ${IMAGE_NAME}:latest
+                    # Push both tags
+                    docker push ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest
+                    docker push ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${BRANCH_TAG}
+
+                    # Optional: clean up
+                    docker image rm ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:latest \
+                                   ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${BRANCH_TAG} \
+                                   ${IMAGE_NAME}:latest ${IMAGE_NAME}:${BRANCH_TAG}
                 """
             }
         }
