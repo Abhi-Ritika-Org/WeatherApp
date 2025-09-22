@@ -10,11 +10,11 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Source') {
-            steps {
-                echo "Source already checked out by Jenkins. Using branch: ${env.BRANCH_NAME}"
-            }
-        }
+        // stage('Checkout Source') {
+        //     steps {
+        //         echo "Source already checked out by Jenkins. Using branch: ${env.BRANCH_NAME}"
+        //     }
+        // }
 
         stage('Build Docker Image') {
             steps {
