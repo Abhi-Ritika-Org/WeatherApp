@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout Source') {
             steps {
-                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git"
+                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git'
             }
         }
 
