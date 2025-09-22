@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        BRANCH_NAME   = 'dev'                      // branch to build
+        // BRANCH_NAME   = 'dev'                      // branch to build
         AWS_ACCOUNT   = '558772714202'             // your AWS account
         AWS_REGION    = 'ap-southeast-2'              // your AWS region
         IMAGE_NAME    = 'weatherapp'              // your Docker image name
@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout Source') {
             steps {
-                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git', branch: "${BRANCH_NAME}"
+                git url: 'https://github.com/Abhi-Ritika-Org/WeatherApp.git"
             }
         }
 
